@@ -1,0 +1,25 @@
+{
+    "schema": "1.0",
+    "type": "whmcs-registrars",
+    "name": "spaceship",
+    "license": "mit",
+    "category": "domains",
+    "description": {
+        "name": "Spaceship",
+        "tagline": "Modern, enhanced registrar module for the Spaceship.com Public API.",
+        "long": "An advanced WHMCS module that supports domain registration, transfers, full nameserver control, WHOIS management, and DNS record synchronization for the Spaceship registrar."
+    },
+    "logo": {
+        "filename": "logo.png"
+    },
+    "support": {
+        "homepage": "https://github.com/TanvirIsraq/whmcs-spaceship-registrar",
+        "docs_url": "https://github.com/TanvirIsraq/whmcs-spaceship-registrar/blob/main/README.md"
+    },
+    "authors": [
+        {
+            "name": "Tanvir Israq",
+            "homepage": "https://github.com/TanvirIsraq"
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+# IDE Workspace and local settings
+*.code-workspace
+.vscode/
+
+# Project specific local files
+.env
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
