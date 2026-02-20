@@ -5,3 +5,4 @@ tests/ export-ignore
 *.code-workspace export-ignore
 *.log export-ignore
 .env export-ignore
+WALKTHROUGH.md export-ignore

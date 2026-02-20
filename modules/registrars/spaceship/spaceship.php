@@ -40,7 +40,7 @@ function spaceship_getConfigArray()
             'FriendlyName' => 'Module Info',
             'Type' => 'System',
             'Value' => '<div class="alert alert-info">
-                <strong>Spaceship.com Registrar Module v2.1.0</strong><br />
+                <strong>Spaceship.com Registrar Module v2.1.1</strong><br />
                 This module allows you to automate domain registration and management via the Spaceship Public API.<br />
                 <ul style="margin-top: 5px;">
                     <li>Obtain your API credentials from the <a href="https://www.spaceship.com/application/api-manager/" target="_blank" class="alert-link">Spaceship API Manager</a>.</li>
@@ -144,10 +144,32 @@ function _spaceship_get_privacy_status($params, $force = false)
         }
     }
 
-    $client = _spaceship_get_client($params);
-    $result = $client->request('GET', "/domains/{$domain}/privacy/preference", [], 'GetIDProtectStatus');
+    // Use main domain info endpoint which is reliable
+    $result = _spaceship_get_domain_info($params, $force);
 
-    $status = ($result['isPrivacyEnabled']) ? 'on' : 'off';
+    $status = 'off';
+
+    // Check for 'privacyLevel' which is the official API spec
+    $level = '';
+    if (isset($result['privacyProtection']['privacyLevel'])) {
+        $level = $result['privacyProtection']['privacyLevel'];
+    } elseif (isset($result['privacyLevel'])) {
+        $level = $result['privacyLevel'];
+    }
+
+    if ($level === 'high') {
+        $status = 'on';
+    } elseif ($level === 'public') {
+        $status = 'off';
+    } else {
+        // Fallback for different API versions
+        if (isset($result['privacyProtection']['isActive'])) {
+            $status = $result['privacyProtection']['isActive'] ? 'on' : 'off';
+        } elseif (isset($result['isPrivacyEnabled'])) {
+            $status = $result['isPrivacyEnabled'] ? 'on' : 'off';
+        }
+    }
+
     Cache::set($domain, 'privacy_status', $status, 290);
     return $status;
 }
@@ -545,8 +567,17 @@ function spaceship_IDProtectToggle($params)
     $status = (bool) $params['protectenable'];
 
     try {
-        // Spaceship typically uses a 'preference' endpoint for privacy
-        $client->request('PUT', "/domains/{$params['domainname']}/privacy/preference", ['isPrivacyEnabled' => $status], 'IDProtectToggle');
+        /**
+         * Privacy Update Spec (Verified from docs.spaceship.dev):
+         * Endpoint: PUT /v1/domains/{domainName}/privacy/preference
+         * Payload: {"privacyLevel": "high"|"public", "userConsent": true}
+         */
+        $updateData = [
+            'privacyLevel' => $status ? 'high' : 'public',
+            'userConsent' => true
+        ];
+
+        $client->request('PUT', "/domains/{$params['domainname']}/privacy/preference", $updateData, 'IDProtectToggle');
 
         // Clear cache
         Cache::clear($params['domainname']);
@@ -629,6 +660,7 @@ function spaceship_Sync($params)
 function spaceship_GetContactDetails($params)
 {
     $client = _spaceship_get_client($params);
+    static $localContactCache = []; // Process-level cache
 
     try {
         $domainInfo = _spaceship_get_domain_info($params);
@@ -637,16 +669,21 @@ function spaceship_GetContactDetails($params)
         foreach (['registrant', 'admin', 'tech', 'billing'] as $type) {
             if (isset($domainInfo['contacts'][$type])) {
                 $contactId = $domainInfo['contacts'][$type];
-                $details = $client->request('GET', "/contacts/{$contactId}", [], 'GetContactDetails');
 
+                // Deduplication: If we already fetched this ID in this call or a previous one in same process
+                if (!isset($localContactCache[$contactId])) {
+                    $localContactCache[$contactId] = $client->request('GET', "/contacts/{$contactId}", [], 'GetContactDetails');
+                }
+
+                $details = $localContactCache[$contactId];
                 $whmcsType = ucfirst($type);
                 $contacts[$whmcsType] = [
                     'First Name' => $details['firstName'],
                     'Last Name' => $details['lastName'],
-                    'Organization Name' => $details['organization'],
+                    'Organization Name' => isset($details['organization']) ? $details['organization'] : '',
                     'Email Address' => $details['email'],
                     'Address 1' => $details['address1'],
-                    'Address 2' => $details['address2'],
+                    'Address 2' => isset($details['address2']) ? $details['address2'] : '',
                     'City' => $details['city'],
                     'State' => $details['stateProvince'],
                     'Postcode' => $details['postalCode'],
@@ -808,8 +845,16 @@ function spaceship_SaveDNS($params)
         }
 
         if (!empty($recordsToSync)) {
-            // Spaceship API Save Records expects an array of records
-            $client->request('POST', "/dns/records/{$params['domainname']}", $recordsToSync, 'SaveDNS');
+            /** 
+             * Spaceship API Update DNS records Spec:
+             * Endpoint: PUT /v1/dns/records/{domain}
+             * Payload: {"items": [...records]}
+             * This replaces the entire record set for the zone.
+             */
+            $dnsPayload = [
+                'items' => $recordsToSync
+            ];
+            $client->request('PUT', "/dns/records/{$params['domainname']}", $dnsPayload, 'SaveDNS');
         }
 
         return ['success' => true];

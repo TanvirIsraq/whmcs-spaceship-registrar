@@ -43,7 +43,7 @@ class ApiClient
             'X-API-Secret: ' . $this->apiSecret,
             'Content-Type: application/json',
             'Accept: application/json',
-            'User-Agent: WHMCS-Spaceship-Module/2.1.0',
+            'User-Agent: WHMCS-Spaceship-Module/2.1.1',
         ];
 
         $requestBody = '';
@@ -80,12 +80,21 @@ class ApiClient
 
         // Log to WHMCS Module Log if function exists
         if (function_exists('logModuleCall') && !empty($action)) {
+            $processedResponse = json_decode($response, true);
+
+            // If response is empty but we have a success code, provide a helpful message
+            if (empty($response) && $httpCode >= 200 && $httpCode < 300) {
+                $processedResponse = ['status' => 'success', 'http_code' => $httpCode, 'message' => 'Empty response (typical for 204 No Content)'];
+            } elseif (empty($response)) {
+                $processedResponse = ['status' => 'error', 'http_code' => $httpCode, 'message' => 'Empty response from server'];
+            }
+
             logModuleCall(
                 'spaceship',
                 $action,
                 $this->lastRequest,
-                $response,
-                json_decode($response, true),
+                $response, // raw
+                $processedResponse, // processed
                 [$this->apiKey, $this->apiSecret] // Sensitive data to mask
             );
         }

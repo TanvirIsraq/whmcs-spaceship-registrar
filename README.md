@@ -21,6 +21,13 @@ An enhanced, high-performance registrar module for WHMCS that integrates with th
 
 ---
 
+## 💎 Premium Features (Coming Soon)
+
+- **TLD Pricing Sync**: Automatically import and sync cost pricing for 400+ TLDs directly into WHMCS with a custom profit margin. 
+  - *Note: This feature is intended for licensed/premium versions only.*
+
+---
+
 ## 🛠️ Installation & Setup
 
 ### Prerequisites

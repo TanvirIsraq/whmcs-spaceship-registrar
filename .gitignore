@@ -5,6 +5,7 @@
 # Project specific local files
 .env
 *.log
+WALKTHROUGH.md
 
 # OS generated files
 .DS_Store
