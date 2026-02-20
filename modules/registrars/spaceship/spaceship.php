@@ -5,8 +5,11 @@ if (!defined("WHMCS")) {
 }
 
 require_once __DIR__ . '/lib/Spaceship/ApiClient.php';
+require_once __DIR__ . '/lib/Spaceship/Cache.php';
 
 use Spaceship\ApiClient;
+use Spaceship\Cache;
+use WHMCS\Database\Capsule;
 
 /**
  * Supported registrar configuration options.
@@ -37,7 +40,7 @@ function spaceship_getConfigArray()
             'FriendlyName' => 'Module Info',
             'Type' => 'System',
             'Value' => '<div class="alert alert-info">
-                <strong>Spaceship.com Registrar Module v2.0.0</strong><br />
+                <strong>Spaceship.com Registrar Module v2.1.0</strong><br />
                 This module allows you to automate domain registration and management via the Spaceship Public API.<br />
                 <ul style="margin-top: 5px;">
                     <li>Obtain your API credentials from the <a href="https://www.spaceship.com/application/api-manager/" target="_blank" class="alert-link">Spaceship API Manager</a>.</li>
@@ -69,6 +72,19 @@ function spaceship_getConfigArray()
 }
 
 /**
+ * Activate the module and initialize the cache table.
+ */
+function spaceship_activate()
+{
+    try {
+        Cache::init();
+        return ['status' => 'success', 'description' => 'Spaceship module activated and cache table initialized.'];
+    } catch (\Exception $e) {
+        return ['status' => 'error', 'description' => 'Could not create cache table: ' . $e->getMessage()];
+    }
+}
+
+/**
  * Get internal API client instance
  *
  * @param array $params
@@ -85,69 +101,54 @@ function _spaceship_get_client($params)
 
 /**
  * Global cache to prevent multiple contact creation calls in same process.
- * WHMCS often requests 4 contacts (Registrant, Admin, Tech, Billing);
- * deduplication prevents creating redundant identical records on the registrar.
  */
 $spaceshipContactCache = [];
 
 /**
- * Global cache for domain information to handle strict rate limits.
- * Spaceship API v1 limits GET /domains/{domain} to 5 requests per 300 seconds.
- */
-$spaceshipDomainCache = [];
-
-/**
- * Global cache for privacy status.
- */
-$spaceshipPrivacyCache = [];
-
-/**
- * Helper to fetch domain info with in-memory caching to avoid rate limits.
- * 
- * This is crucial because WHMCS calls several Get functions in a single page load,
- * which would otherwise exhaust the 5-request-per-5-minute limit immediately.
+ * Helper to fetch domain info with persistent database caching.
  *
  * @param array $params
- * @param bool $force Force fresh fetch (used in Sync functions)
+ * @param bool $force Force fresh fetch
  * @return array
  */
 function _spaceship_get_domain_info($params, $force = false)
 {
-    global $spaceshipDomainCache;
     $domain = $params['domainname'];
 
-    if (!$force && isset($spaceshipDomainCache[$domain])) {
-        return $spaceshipDomainCache[$domain];
+    if (!$force) {
+        $cached = Cache::get($domain, 'domain_info');
+        if ($cached) {
+            return $cached;
+        }
     }
 
     $client = _spaceship_get_client($params);
     $result = $client->request('GET', "/domains/{$domain}", [], 'GetDomainInfo');
 
-    $spaceshipDomainCache[$domain] = $result;
+    // Cache for 290 seconds (slightly less than 5 mins to be safe)
+    Cache::set($domain, 'domain_info', $result, 290);
     return $result;
 }
 
 /**
- * Helper to fetch privacy status with in-memory caching.
- *
- * @param array $params
- * @param bool $force
- * @return string 'on'|'off'
+ * Helper to fetch privacy status with persistent database caching.
  */
 function _spaceship_get_privacy_status($params, $force = false)
 {
-    global $spaceshipPrivacyCache;
     $domain = $params['domainname'];
 
-    if (!$force && isset($spaceshipPrivacyCache[$domain])) {
-        return $spaceshipPrivacyCache[$domain];
+    if (!$force) {
+        $cached = Cache::get($domain, 'privacy_status');
+        if ($cached) {
+            return $cached;
+        }
     }
 
     $client = _spaceship_get_client($params);
     $result = $client->request('GET', "/domains/{$domain}/privacy/preference", [], 'GetIDProtectStatus');
 
     $status = ($result['isPrivacyEnabled']) ? 'on' : 'off';
-    $spaceshipPrivacyCache[$domain] = $status;
+    Cache::set($domain, 'privacy_status', $status, 290);
     return $status;
 }
 
@@ -404,6 +405,9 @@ function spaceship_SaveNameservers($params)
 
         $client->request('PUT', "/domains/{$params['domainname']}/nameservers", $nsData, 'SaveNameservers');
 
+        // Clear cache so user sees new NS immediately
+        Cache::clear($params['domainname']);
+
         return ['success' => true];
     } catch (\Exception $e) {
         return ['error' => $e->getMessage()];
@@ -499,6 +503,9 @@ function spaceship_SaveRegistrarLock($params)
             'isLocked' => (bool) $isLocked
         ], 'SaveRegistrarLock');
 
+        // Clear cache
+        Cache::clear($params['domainname']);
+
         return ['success' => true];
     } catch (\Exception $e) {
         if (function_exists('logModuleCall')) {
@@ -542,8 +549,7 @@ function spaceship_IDProtectToggle($params)
         $client->request('PUT', "/domains/{$params['domainname']}/privacy/preference", ['isPrivacyEnabled' => $status], 'IDProtectToggle');
 
         // Clear cache
-        global $spaceshipPrivacyCache;
-        unset($spaceshipPrivacyCache[$params['domainname']]);
+        Cache::clear($params['domainname']);
 
         return ['success' => true];
     } catch (\Exception $e) {
@@ -703,6 +709,9 @@ function spaceship_SaveContactDetails($params)
         }
 
         $client->request('PUT', "/domains/{$params['domainname']}/contacts", $contactIds, 'UpdateDomainContacts');
+
+        // Clear cache
+        Cache::clear($params['domainname']);
 
         return ['success' => true];
     } catch (\Exception $e) {

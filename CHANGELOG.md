@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Persistent Database Cache**: Replaced in-memory caching with a database-backed system (`mod_spaceship_cache` table). Rate-limit protection now persists across multiple page loads and different administrative sessions.
+- **Auto-Initialization**: Added `spaceship_activate` hook to automatically set up required database tables upon module activation.
+
+### ⚠️ Upgrade Notes
+If you are upgrading from a previous version, you **must** trigger the database table creation:
+1. Go to **System Settings > Domain Registrars**.
+2. Find **Spaceship** and click **Deactivate**.
+3. Immediately click **Activate** again.
+4. Verify your API credentials are still saved.
+This will create the necessary `mod_spaceship_cache` table in your WHMCS database.
+
 ## [2.0.0] - 2026-02-19
 
 ### Added

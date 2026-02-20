@@ -16,7 +16,7 @@ An enhanced, high-performance registrar module for WHMCS that integrates with th
 - **Adaptive Syncing**: Advanced status mapping handles `Registered`, `Expired`, `Grace Period`, and `Redemption` automatically.
 - **DNS Record Management**: Native support for A, AAAA, CNAME, MX, TXT, and SRV records.
 - **EPP Code Handling**: Secure retrieval of transfer authorization codes for clients.
-- **Smart Rate-Limit Protection**: Implements internal process-level caching to prevent "429 Too Many Requests" errors during heavy usage.
+- **Smart Rate-Limit Protection**: Implements **Persistent Database Caching** (`mod_spaceship_cache`) to prevent "429 Too Many Requests" errors, even across multiple admin sessions.
 - **Optimized Contact Updates**: Deduplication logic prevents creating multiple identical contact IDs during updates.
 
 ---
@@ -28,7 +28,14 @@ An enhanced, high-performance registrar module for WHMCS that integrates with th
 - **PHP 7.4 or higher** (PHP 8.1+ recommended)
 - **Spaceship.com API Credentials**: Obtain your API Key and Secret from the [Spaceship API Manager](https://www.spaceship.com/application/api-manager/).
 
-### Steps
+### Upgrading from v2.0 or earlier
+If you are upgrading an existing installation, you **must re-activate the module** to create the necessary database table:
+1. Upload the new files, overwriting the old ones.
+2. Go to **System Settings > Domain Registrars**.
+3. Find **Spaceship**, click **Deactivate**, and then immediately click **Activate**.
+4. Verify your API credentials are still present and click **Save Changes**.
+
+### New Installation
 1. **Download**: Download the repository as a ZIP or clone it.
 2. **Upload**: Upload the `modules/` folder into your **WHMCS root directory**.
 3. **Activate**:

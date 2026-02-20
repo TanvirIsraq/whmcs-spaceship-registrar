@@ -39,10 +39,11 @@ class ApiClient
         $ch = curl_init();
 
         $headers = [
-            'X-Api-Key: ' . $this->apiKey,
-            'X-Api-Secret: ' . $this->apiSecret,
+            'X-API-Key: ' . $this->apiKey,
+            'X-API-Secret: ' . $this->apiSecret,
             'Content-Type: application/json',
             'Accept: application/json',
+            'User-Agent: WHMCS-Spaceship-Module/2.1.0',
         ];
 
         $requestBody = '';
