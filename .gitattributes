@@ -6,3 +6,6 @@ tests/ export-ignore
 *.log export-ignore
 .env export-ignore
 WALKTHROUGH.md export-ignore
+.agent/ export-ignore
+AGENTS.md export-ignore
+yakpro-po.cnf export-ignore

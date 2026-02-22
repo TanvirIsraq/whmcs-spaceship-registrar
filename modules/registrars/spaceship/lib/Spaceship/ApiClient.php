@@ -36,22 +36,22 @@ class ApiClient
     public function request($method, $endpoint, $params = [], $action = '')
     {
         $url = $this->baseUrl . $endpoint;
-        $ch = curl_init();
+        $ch = \curl_init();
 
         $headers = [
             'X-API-Key: ' . $this->apiKey,
             'X-API-Secret: ' . $this->apiSecret,
             'Content-Type: application/json',
             'Accept: application/json',
-            'User-Agent: WHMCS-Spaceship-Module/2.1.1',
+            'User-Agent: WHMCS-Spaceship-Module/2.2.1',
         ];
 
         $requestBody = '';
         if ($method === 'GET' && !empty($params)) {
-            $url .= '?' . http_build_query($params);
-        } elseif (in_array($method, ['POST', 'PUT', 'PATCH'])) {
-            $requestBody = json_encode($params);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $requestBody);
+            $url .= '?' . \http_build_query($params);
+        } elseif (\in_array($method, ['POST', 'PUT', 'PATCH'])) {
+            $requestBody = \json_encode($params);
+            \curl_setopt($ch, \CURLOPT_POSTFIELDS, $requestBody);
         }
 
         $this->lastRequest = [
@@ -61,16 +61,18 @@ class ApiClient
             'body' => $params
         ];
 
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        \curl_setopt($ch, \CURLOPT_URL, $url);
+        \curl_setopt($ch, \CURLOPT_RETURNTRANSFER, true);
+        \curl_setopt($ch, \CURLOPT_CUSTOMREQUEST, $method);
+        \curl_setopt($ch, \CURLOPT_HTTPHEADER, $headers);
+        \curl_setopt($ch, \CURLOPT_SSL_VERIFYPEER, true);
+        \curl_setopt($ch, \CURLOPT_SSL_VERIFYHOST, 2);
+        \curl_setopt($ch, \CURLOPT_TIMEOUT, 30);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
+        $response = \curl_exec($ch);
+        $httpCode = \curl_getinfo($ch, \CURLINFO_HTTP_CODE);
+        $error = \curl_error($ch);
+        \curl_close($ch);
 
         $this->lastResponse = [
             'httpCode' => $httpCode,
@@ -79,8 +81,8 @@ class ApiClient
         ];
 
         // Log to WHMCS Module Log if function exists
-        if (function_exists('logModuleCall') && !empty($action)) {
-            $processedResponse = json_decode($response, true);
+        if (\function_exists('logModuleCall') && !empty($action)) {
+            $processedResponse = \json_decode($response, true);
 
             // If response is empty but we have a success code, provide a helpful message
             if (empty($response) && $httpCode >= 200 && $httpCode < 300) {
@@ -89,7 +91,7 @@ class ApiClient
                 $processedResponse = ['status' => 'error', 'http_code' => $httpCode, 'message' => 'Empty response from server'];
             }
 
-            logModuleCall(
+            \logModuleCall(
                 'spaceship',
                 $action,
                 $this->lastRequest,
@@ -103,7 +105,7 @@ class ApiClient
             throw new \Exception("Spaceship API Curl Error: " . $error);
         }
 
-        $result = json_decode($response, true);
+        $result = \json_decode($response, true);
 
         if ($httpCode >= 400) {
             $message = isset($result['detail']) ? $result['detail'] : 'Unknown API Error';

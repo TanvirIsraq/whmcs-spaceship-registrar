@@ -32,9 +32,9 @@ class Cache
                     }
                 );
             }
-        } catch (\Exception $e) {
-            if (function_exists('logActivity')) {
-                logActivity("Spaceship Cache Init Error: " . $e->getMessage());
+        } catch (\Throwable $e) {
+            if (\function_exists('logActivity')) {
+                \logActivity("Spaceship Cache Init Error: " . $e->getMessage());
             }
         }
     }
@@ -58,11 +58,11 @@ class Cache
             $cache = Capsule::table(self::TABLE)
                 ->where('domain_name', $domain)
                 ->where('cache_key', $key)
-                ->where('expires_at', '>', time())
+                ->where('expires_at', '>', \time())
                 ->first();
 
-            return $cache ? json_decode($cache->cache_value, true) : null;
-        } catch (\Exception $e) {
+            return $cache ? \json_decode($cache->cache_value, true) : null;
+        } catch (\Throwable $e) {
             return null;
         }
     }
@@ -79,13 +79,13 @@ class Cache
     public static function set($domain, $key, $value, $ttl = 300)
     {
         try {
-            $expiresAt = time() + $ttl;
+            $expiresAt = \time() + $ttl;
 
             Capsule::table(self::TABLE)->updateOrInsert(
                 ['domain_name' => $domain, 'cache_key' => $key],
-                ['cache_value' => json_encode($value), 'expires_at' => $expiresAt]
+                ['cache_value' => \json_encode($value), 'expires_at' => $expiresAt]
             );
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Fail silently to allow API-only operation if DB fails
         }
     }
@@ -100,7 +100,7 @@ class Cache
     {
         try {
             Capsule::table(self::TABLE)->where('domain_name', $domain)->delete();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Fail silently
         }
     }

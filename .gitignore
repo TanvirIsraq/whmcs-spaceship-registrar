@@ -6,6 +6,7 @@
 .env
 *.log
 WALKTHROUGH.md
+CHANGELOG_WEB.md
 
 # OS generated files
 .DS_Store
@@ -16,3 +17,6 @@ WALKTHROUGH.md
 ehthumbs.db
 Thumbs.db
 desktop.ini
+
+
+AGENTS.md

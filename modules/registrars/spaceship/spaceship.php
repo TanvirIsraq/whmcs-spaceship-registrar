@@ -7,6 +7,17 @@ if (!defined("WHMCS")) {
 require_once __DIR__ . '/lib/Spaceship/ApiClient.php';
 require_once __DIR__ . '/lib/Spaceship/Cache.php';
 
+// Load JobFew Framework (Global Addon Helper), or local Premium/ copy as fallback
+$_jfBridgeGlobal = defined('ROOTDIR') ? ROOTDIR . '/modules/addons/jobfew_helper/lib/JobFew/Premium/Bridge.php' : '';
+$_jfBridgeLocal = __DIR__ . '/lib/Spaceship/Premium/Bridge.php';
+
+if (!empty($_jfBridgeGlobal) && \file_exists($_jfBridgeGlobal)) {
+    require_once $_jfBridgeGlobal;
+} elseif (\file_exists($_jfBridgeLocal)) {
+    require_once $_jfBridgeLocal;
+}
+unset($_jfBridgeGlobal, $_jfBridgeLocal);
+
 use Spaceship\ApiClient;
 use Spaceship\Cache;
 use WHMCS\Database\Capsule;
@@ -31,21 +42,18 @@ function spaceship_GetRegistrarConfigOptions()
  */
 function spaceship_getConfigArray()
 {
-    return [
-        'FriendlyName' => [
+    $config = [
+        'Description' => [
+            'FriendlyName' => ' ',
             'Type' => 'System',
-            'Value' => 'Spaceship',
-        ],
-        'Instructions' => [
-            'FriendlyName' => 'Module Info',
-            'Type' => 'System',
-            'Value' => '<div class="alert alert-info">
-                <strong>Spaceship.com Registrar Module v2.1.1</strong><br />
-                This module allows you to automate domain registration and management via the Spaceship Public API.<br />
-                <ul style="margin-top: 5px;">
-                    <li>Obtain your API credentials from the <a href="https://www.spaceship.com/application/api-manager/" target="_blank" class="alert-link">Spaceship API Manager</a>.</li>
-                    <li>Ensure your server IP is whitelisted in your Spaceship API settings.</li>
-                    <li><strong>Note:</strong> Spaceship Sandbox is currently unavailable. Test Mode is for future use.</li>
+            'Value' => '<div class="alert alert-info" style="margin: 5px 0;">
+                <h4 style="margin: 0 0 10px 0;">Spaceship.com Registrar Module v2.2.1{PRO_BADGE}</h4>
+                <p style="margin-bottom: 10px;">Automate domain registration and management via the Spaceship Public API.</p>
+                <div style="margin: 10px 0;">{STATUS_LINE}</div>
+                <hr style="margin: 10px 0;">
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>📚 Resources:</strong> <a href="https://github.com/TanvirIsraq/whmcs-spaceship-registrar" target="_blank" class="alert-link">GitHub Docs</a></li>
+                    <li>Obtain credentials from the <a href="https://www.spaceship.com/application/api-manager/" target="_blank" class="alert-link">API Manager</a>.</li>
                 </ul>
             </div>',
         ],
@@ -66,9 +74,28 @@ function spaceship_getConfigArray()
         'TestMode' => [
             'FriendlyName' => 'Test Mode',
             'Type' => 'yesno',
+            'OptionName' => 'sandbox',
             'Description' => 'Tick to enable test mode (Currently Unavailable - Spaceship has no public sandbox yet)',
         ],
     ];
+
+    // Pro/Free Status Handling (Decoupled to Config)
+    $configPath = __DIR__ . '/lib/Spaceship/Premium/Config.php';
+    if (\file_exists($configPath)) {
+        require_once $configPath;
+        if (\class_exists('\Spaceship\Premium\Config')) {
+            $config = \Spaceship\Premium\Config::enhanceConfig($config);
+        }
+    } else {
+        // Fallback for Free Version
+        $config['Description']['Value'] = str_replace(
+            ['{PRO_BADGE}', '{STATUS_LINE}'],
+            ['', '<strong>Free Version:</strong> Upgrade for TLD Pricing Sync. <a href="https://my.jobfew.com/checkout-edd/?edd_action=add_to_cart&download_id=402" target="_blank" class="alert-link" style="text-decoration: underline;">Upgrade to Premium (PRO)</a>'],
+            $config['Description']['Value']
+        );
+    }
+
+    return $config;
 }
 
 /**
@@ -84,19 +111,21 @@ function spaceship_activate()
     }
 }
 
-/**
- * Get internal API client instance
- *
- * @param array $params
- * @return ApiClient
- */
-function _spaceship_get_client($params)
-{
-    return new ApiClient(
-        $params['APIKey'],
-        $params['APISecret'],
-        $params['TestMode'] === 'on'
-    );
+if (!\function_exists('_spaceship_get_client')) {
+    /**
+     * Get internal API client instance
+     *
+     * @param array $params
+     * @return ApiClient
+     */
+    function _spaceship_get_client($params)
+    {
+        return new ApiClient(
+            $params['APIKey'],
+            $params['APISecret'],
+            $params['TestMode'] === 'on'
+        );
+    }
 }
 
 /**
@@ -150,28 +179,74 @@ function _spaceship_get_privacy_status($params, $force = false)
     $status = 'off';
 
     // Check for 'privacyLevel' which is the official API spec
-    $level = '';
-    if (isset($result['privacyProtection']['privacyLevel'])) {
-        $level = $result['privacyProtection']['privacyLevel'];
-    } elseif (isset($result['privacyLevel'])) {
-        $level = $result['privacyLevel'];
-    }
-
-    if ($level === 'high') {
+    if (isset($result['privacyLevel']) && $result['privacyLevel'] !== 'PUBLIC') {
         $status = 'on';
-    } elseif ($level === 'public') {
-        $status = 'off';
-    } else {
-        // Fallback for different API versions
-        if (isset($result['privacyProtection']['isActive'])) {
-            $status = $result['privacyProtection']['isActive'] ? 'on' : 'off';
-        } elseif (isset($result['isPrivacyEnabled'])) {
-            $status = $result['isPrivacyEnabled'] ? 'on' : 'off';
-        }
     }
 
     Cache::set($domain, 'privacy_status', $status, 290);
     return $status;
+}
+
+/**
+ * Check the availability of one or more domains.
+ *
+ * @param array $params
+ * @return \WHMCS\Domains\DomainLookup\ResultsList
+ */
+function spaceship_CheckAvailability($params)
+{
+    $client = _spaceship_get_client($params);
+    $searchTerm = $params['searchTerm'];
+    $tldsToInclude = $params['tldsToInclude'];
+    $isOverride = $params['isOverride'];
+
+    $domainsToCheck = [];
+    if ($isOverride) {
+        $domainsToCheck[] = $searchTerm;
+    } else {
+        foreach ($tldsToInclude as $tld) {
+            $domainsToCheck[] = $searchTerm . $tld;
+        }
+    }
+
+    try {
+        $result = $client->request('POST', "/domains/available", ['domains' => $domainsToCheck], 'CheckAvailability');
+        $results = new \WHMCS\Domains\DomainLookup\ResultsList();
+
+        foreach ($result['items'] as $item) {
+            $searchResult = new \WHMCS\Domains\DomainLookup\SearchResult($item['domain'], $item['tld']);
+
+            // Default status: treat unknown as registered to be safe
+            $status = \WHMCS\Domains\DomainLookup\SearchResult::STATUS_REGISTERED;
+
+            if ($item['isAvailable']) {
+                $status = \WHMCS\Domains\DomainLookup\SearchResult::STATUS_NOT_REGISTERED;
+
+                // PREMIUM FEATURE: Search Enhancer (Process Pricing Markup)
+                $configPath = __DIR__ . '/lib/Spaceship/Premium/Config.php';
+                if (isset($item['premiumPricing']) && \file_exists($configPath)) {
+                    require_once $configPath;
+                    if (\class_exists('\Spaceship\Premium\Config') && \Spaceship\Premium\Config::isActive($params)) {
+                        $enhancerFile = __DIR__ . '/lib/Spaceship/Premium/SearchEnhancer.php';
+                        if (\file_exists($enhancerFile)) {
+                            require_once $enhancerFile;
+                            \Spaceship\Premium\SearchEnhancer::processPremiumAvailability($searchResult, $item, $params);
+                        }
+                    }
+                }
+            }
+
+            $searchResult->setStatus($status);
+            $results->append($searchResult);
+        }
+
+        return $results;
+    } catch (\Exception $e) {
+        if (function_exists('logModuleCall')) {
+            logModuleCall('spaceship', 'CheckAvailability Error', $params, $e->getMessage());
+        }
+        return (new \WHMCS\Domains\DomainLookup\ResultsList())->setError($e->getMessage());
+    }
 }
 
 /**
@@ -348,7 +423,7 @@ function spaceship_TransferDomain($params)
 
         // 2. Request Transfer
         $transferData = [
-            'authCode' => $params['eppcode'],
+            'authCode' => $params['eppcode'] ?? '',
             'autoRenew' => false,
             'years' => 1,
             'contacts' => [
@@ -548,10 +623,10 @@ function spaceship_GetIDProtectStatus($params)
     try {
         return _spaceship_get_privacy_status($params);
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'GetIDProtectStatus Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'GetIDProtectStatus Error', $params, $e->getMessage());
         }
-        return $e->getMessage();
+        return '';
     }
 }
 
@@ -584,8 +659,8 @@ function spaceship_IDProtectToggle($params)
 
         return ['success' => true];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'IDProtectToggle Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'IDProtectToggle Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -941,47 +1016,61 @@ function spaceship_DeleteNameserver($params)
     }
 }
 
+
+
 /**
- * Check the availability of one or more domains.
+ * Get TLD pricing synchronization (Premium Feature).
+ * Returns a ResultsList of ImportItem objects as required by WHMCS.
  *
  * @param array $params
- * @return \WHMCS\Domains\DomainLookup\ResultsList
+ * @return \WHMCS\Results\ResultsList
  */
-function spaceship_CheckAvailability($params)
+function spaceship_GetTldPricing($params)
 {
-    $client = _spaceship_get_client($params);
-    $searchTerm = $params['searchTerm'];
-    $tldsToInclude = $params['tldsToInclude'];
-    $isOverride = $params['isOverride'];
-
-    $domainsToCheck = [];
-    if ($isOverride) {
-        $domainsToCheck[] = $searchTerm;
-    } else {
-        foreach ($tldsToInclude as $tld) {
-            $domainsToCheck[] = $searchTerm . $tld;
-        }
-    }
-
     try {
-        $result = $client->request('POST', "/domains/available", ['domains' => $domainsToCheck], 'CheckAvailability');
-        $results = new \WHMCS\Domains\DomainLookup\ResultsList();
+        $resultsClass = '\WHMCS\Domains\TldSync\ResultsList';
+        if (!\class_exists($resultsClass)) {
+            $resultsClass = '\WHMCS\Results\ResultsList';
+        }
+        $results = \class_exists($resultsClass) ? new $resultsClass() : [];
 
-        foreach ($result['items'] as $item) {
-            $searchResult = new \WHMCS\Domains\DomainLookup\SearchResult($item['domain'], $item['tld']);
+        // Check for premium activation (decoupled to Config class)
+        $configPath = __DIR__ . '/lib/Spaceship/Premium/Config.php';
+        if (\file_exists($configPath)) {
+            require_once $configPath;
+            if (\class_exists('\Spaceship\Premium\Config') && \Spaceship\Premium\Config::isActive($params)) {
+                // Feature Toggle Check: Only block background Cron (CLI) if disabled.
+                // Manual Sync (Web) is always allowed if the license is active.
+                if (($params['EnableAutoSync'] ?? '') !== 'on' && \PHP_SAPI === 'cli') {
+                    if (\function_exists('logModuleCall')) {
+                        \logModuleCall('spaceship', 'Sync: Skipped', 'Auto-Sync Disabled', 'TLD Pricing Sync is disabled for automated cron tasks.');
+                    }
+                    return $results;
+                }
 
-            if ($item['isAvailable']) {
-                $status = \WHMCS\Domains\DomainLookup\SearchResult::STATUS_NOT_REGISTERED;
-            } else {
-                $status = \WHMCS\Domains\DomainLookup\SearchResult::STATUS_REGISTERED;
+                $syncFile = __DIR__ . '/lib/Spaceship/Premium/PricingSync.php';
+                if (\file_exists($syncFile)) {
+                    require_once $syncFile;
+                    if (class_exists('\Spaceship\Premium\PricingSync')) {
+                        return (new \Spaceship\Premium\PricingSync($params))->handle();
+                    } else {
+                        if (\function_exists('logModuleCall')) {
+                            \logModuleCall('spaceship', 'Sync: Error', 'Class Missing', 'PricingSync class not found in file.');
+                        }
+                    }
+                } else {
+                    if (\function_exists('logModuleCall')) {
+                        \logModuleCall('spaceship', 'Sync: Error', 'File Missing', 'PricingSync file missing at ' . $syncFile);
+                    }
+                }
             }
-
-            $searchResult->setStatus($status);
-            $results->append($searchResult);
         }
 
         return $results;
-    } catch (\Exception $e) {
-        return new \WHMCS\Domains\DomainLookup\ResultsList();
+    } catch (\Throwable $e) {
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'Sync: FATAL ERROR', $e->getMessage(), $e->getTraceAsString());
+        }
+        return new \WHMCS\Results\ResultsList();
     }
 }

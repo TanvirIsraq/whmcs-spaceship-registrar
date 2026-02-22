@@ -16,15 +16,15 @@ An enhanced, high-performance registrar module for WHMCS that integrates with th
 - **Adaptive Syncing**: Advanced status mapping handles `Registered`, `Expired`, `Grace Period`, and `Redemption` automatically.
 - **DNS Record Management**: Native support for A, AAAA, CNAME, MX, TXT, and SRV records.
 - **EPP Code Handling**: Secure retrieval of transfer authorization codes for clients.
-- **Smart Rate-Limit Protection**: Implements **Persistent Database Caching** (`mod_spaceship_cache`) to prevent "429 Too Many Requests" errors, even across multiple admin sessions.
+- **Smart Rate-Limit Protection**: Implements **Persistent Database Caching** to prevent "429 Too Many Requests" errors, even across multiple admin sessions.
 - **Optimized Contact Updates**: Deduplication logic prevents creating multiple identical contact IDs during updates.
 
 ---
 
-## 💎 Premium Features (Coming Soon)
+## 💎 Premium Features
 
-- **TLD Pricing Sync**: Automatically import and sync cost pricing for 400+ TLDs directly into WHMCS with a custom profit margin. 
-  - *Note: This feature is intended for licensed/premium versions only.*
+- **TLD Pricing Sync**: Automatically import and sync cost pricing for 470+ TLDs directly into WHMCS with a custom profit margin. 
+  - *Recommendation: Always verify 2-5 random extension prices after a sync to ensure accuracy, as pricing data may rarely contain discrepancies.*
 
 ---
 
@@ -78,6 +78,10 @@ If you encounter any issues:
 - **404 Not Found**: Usually happens if the domain is not in your Spaceship account or you are trying to GET a sub-resource that only supports PUT.
 - **429 Rate Limit Exceeded**: Spaceship allows 5 requests per 5 minutes. Wait a few minutes or reduce bulk updates.
 - **400 Invalid Request**: Often means a required field (like DNS `take/skip` or Child Nameserver `host`) is missing or incorrectly formatted.
+
+### Support
+- Email: `support@jobfew.com`
+- Support Request: `https://my.jobfew.com/support-request/`
 
 ---
 
