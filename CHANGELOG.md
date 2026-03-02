@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Product Transfer**: This module has been transferred to **Topeta**. License activation is now processed via [my.topeta.com](https://my.topeta.com).
+- **Licensing Resilience**: The module optimally relies on server-side redirects at `my.jobfew.com` (0 code changes required for existing installations).
+- **Support Ecosystem**: Updated support email (`support@topeta.com`) and updated internal store references.
+
 ### Added
 - **Automated Release Pipeline**: Added a GitHub Actions workflow that automatically builds and attaches a distributable ZIP to every GitHub Release.
 - **Release Packaging Improvements (Pro Version)**: Improved build reliability for production releases.

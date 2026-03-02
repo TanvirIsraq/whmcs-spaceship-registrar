@@ -1,4 +1,7 @@
-# Spaceship.com Registrar Module for WHMCS
+# Spaceship.com Registrar Module for WHMCS (Topeta)
+
+> [!IMPORTANT]
+> **PRODUCT TRANSFER NOTICE**: This product has been transferred from JobFew to **Topeta**. For existing installations, the codebase remains under the `JobFew` identity to ensure 100% stability. License management and support are now handled via [my.topeta.com](https://my.topeta.com).
 
 An enhanced, high-performance registrar module for WHMCS that integrates with the [Spaceship.com](https://www.spaceship.com/) Public API. This module is designed for stability, speed, and 100% compatibility with WHMCS v8.x and v9.x.
 
@@ -80,8 +83,8 @@ If you encounter any issues:
 - **400 Invalid Request**: Often means a required field (like DNS `take/skip` or Child Nameserver `host`) is missing or incorrectly formatted.
 
 ### Support
-- Email: `support@jobfew.com`
-- Support Request: `https://my.jobfew.com/support-request/`
+- Email: `support@topeta.com`
+- Support Request: [my.topeta.com](https://my.topeta.com/support-request/) (formerly my.jobfew.com)
 
 ---
 
