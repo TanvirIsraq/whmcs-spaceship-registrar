@@ -1,0 +1,71 @@
+name: Build & Release Free ZIP
+
+# ─── Trigger ────────────────────────────────────────────────────────────────
+# Fires when a GitHub Release is published or a tag matching v*.*.* is pushed.
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write   # Required to upload assets to a GitHub Release
+
+jobs:
+  build-release:
+    name: Build & Attach Release ZIP
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout full repo ────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Determine tag / version ───────────────────────────────────
+      - name: Set version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ "$TAG" == refs/* ]]; then
+            TAG="${{ github.event.release.tag_name }}"
+          fi
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Detected version tag: $TAG"
+
+      # ── 3. Build distributable ZIP ─────────────────────────────────────
+      - name: Build ZIP archive
+        id: build_zip
+        run: |
+          TAG="${{ steps.version.outputs.TAG }}"
+          ZIP_NAME="whmcs-spaceship-registrar-${TAG}.zip"
+
+          # Create staging directory with WHMCS module structure
+          mkdir -p staging/modules/registrars/spaceship
+          cp -r modules/registrars/spaceship/. staging/modules/registrars/spaceship/
+
+          # Clean up unnecessary files
+          find staging -name ".git*" -exec rm -rf {} +
+          find staging -name "*.DS_Store" -exec rm -rf {} +
+          find staging -name "__tests__" -type d -exec rm -rf {} +
+          find staging -name "*.md" -exec rm -f {} +
+
+          # Create ZIP from the staging folder
+          cd staging
+          zip -r "../$ZIP_NAME" modules/ -x "__MACOSX/*"
+          cd ..
+
+          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo "Built: $ZIP_NAME"
+          ls -lh "$ZIP_NAME"
+
+      # ── 4. Upload ZIP to GitHub Release ─────────────────────────────────
+      - name: Upload ZIP to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.TAG }}
+          files: ${{ steps.build_zip.outputs.ZIP_NAME }}
+          fail_on_unmatched_files: true
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
