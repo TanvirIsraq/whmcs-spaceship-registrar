@@ -44,11 +44,14 @@ jobs:
           mkdir -p staging/modules/registrars/spaceship
           cp -r modules/registrars/spaceship/. staging/modules/registrars/spaceship/
 
-          # Clean up unnecessary files
+          # ── Clean up unnecessary files ──
           find staging -name ".git*" -exec rm -rf {} +
           find staging -name "*.DS_Store" -exec rm -rf {} +
           find staging -name "__tests__" -type d -exec rm -rf {} +
           find staging -name "*.md" -exec rm -f {} +
+          # Also remove LICENSE file if present
+          find staging -name "LICENSE" -exec rm -f {} +
+
 
           # Create ZIP from the staging folder
           cd staging
