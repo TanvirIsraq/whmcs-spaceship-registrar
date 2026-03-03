@@ -47,7 +47,7 @@ function spaceship_getConfigArray()
             'FriendlyName' => ' ',
             'Type' => 'System',
             'Value' => '<div class="alert alert-info" style="margin: 5px 0;">
-                <h4 style="margin: 0 0 10px 0;">Spaceship.com Registrar Module v2.2.1{PRO_BADGE}</h4>
+                <h4 style="margin: 0 0 10px 0;">Spaceship.com Registrar Module v2.2.2{PRO_BADGE}</h4>
                 <p style="margin-bottom: 10px;">Automate domain registration and management via the Spaceship Public API.</p>
                 <div style="margin: 10px 0;">{STATUS_LINE}</div>
                 <hr style="margin: 10px 0;">
@@ -258,19 +258,39 @@ function spaceship_CheckAvailability($params)
  */
 function _spaceship_prepare_contact_data($params, $type)
 {
-    return [
-        'firstName' => $params["{$type}firstname"],
-        'lastName' => $params["{$type}lastname"],
-        'organization' => $params["{$type}companyname"],
-        'email' => $params["{$type}email"],
-        'address1' => $params["{$type}address1"],
-        'address2' => $params["{$type}address2"],
-        'city' => $params["{$type}city"],
-        'country' => $params["{$type}country"],
-        'stateProvince' => $params["{$type}fullstate"],
-        'postalCode' => $params["{$type}postcode"],
-        'phone' => $params["{$type}phonenumberformatted"],
+    // WHMCS uses 'firstname', 'lastname' etc for registrant (no prefix)
+    // and 'adminfirstname', 'adminlastname' etc for admin
+    $prefix = ($type === 'registrant') ? '' : $type;
+
+    // 1. Resolve Phone with global fallback
+    $phone = $params["{$prefix}phonenumberformatted"]
+        ?? $params["{$prefix}fullphonenumber"]
+        ?? $params["{$prefix}phonenumber"]
+        ?? $params['phonenumberformatted']
+        ?? $params['fullphonenumber']
+        ?? $params['phonenumber']
+        ?? '';
+
+    $data = [
+        'firstName' => \trim($params["{$prefix}firstname"] ?? $params['firstname'] ?? ''),
+        'lastName' => \trim($params["{$prefix}lastname"] ?? $params['lastname'] ?? ''),
+        'organization' => \trim($params["{$prefix}companyname"] ?? $params['companyname'] ?? ''),
+        'email' => \trim($params["{$prefix}email"] ?? $params['email'] ?? ''),
+        'address1' => \trim($params["{$prefix}address1"] ?? $params['address1'] ?? ''),
+        'address2' => \trim($params["{$prefix}address2"] ?? $params['address2'] ?? ''),
+        'city' => \trim($params["{$prefix}city"] ?? $params['city'] ?? ''),
+        'country' => $params["{$prefix}country"] ?? $params['country'] ?? '',
+        'stateProvince' => \trim($params["{$prefix}fullstate"] ?? $params['fullstate'] ?? $params['state'] ?? ''),
+        'postalCode' => \trim($params["{$prefix}postcode"] ?? $params['postcode'] ?? ''),
+        'phone' => \trim($phone),
     ];
+
+    // Remove empty optional fields. Required fields must stay (even if empty) to satisfy API schema.
+    $required = ['firstName', 'lastName', 'email', 'address1', 'city', 'country', 'postalCode', 'phone'];
+
+    return \array_filter($data, function ($value, $key) use ($required) {
+        return $value !== '' || \in_array($key, $required);
+    }, ARRAY_FILTER_USE_BOTH);
 }
 
 /**
@@ -292,7 +312,7 @@ function _spaceship_save_contact($client, $params, $type)
         return $spaceshipContactCache[$cacheKey];
     }
 
-    $result = $client->request('POST', '/contacts', $data, 'SaveContact');
+    $result = $client->request('PUT', '/contacts', $data, 'SaveContact');
     $spaceshipContactCache[$cacheKey] = $result['contactId'];
 
     return $result['contactId'];
@@ -356,6 +376,11 @@ function spaceship_RegisterDomain($params)
                     $params['ns2'],
                 ],
             ],
+            'privacyProtection' => [
+                'isActive' => isset($params['idprotection']) ? (bool) $params['idprotection'] : false,
+                'level' => (isset($params['idprotection']) && $params['idprotection']) ? 'high' : 'public',
+                'userConsent' => true,
+            ],
         ];
 
         if (!empty($params['ns3']))
@@ -365,7 +390,7 @@ function spaceship_RegisterDomain($params)
         if (!empty($params['ns5']))
             $registrationData['nameservers']['hosts'][] = $params['ns5'];
 
-        $client->request('POST', "/domains/{$params['domainname']}/register", $registrationData, 'RegisterDomain');
+        $client->request('POST', "/domains/{$params['domainname']}", $registrationData, 'RegisterDomain');
 
         return ['success' => true];
     } catch (\Exception $e) {

@@ -26,8 +26,12 @@ An enhanced, high-performance registrar module for WHMCS that integrates with th
 
 ## 💎 Premium Features
 
-- **TLD Pricing Sync**: Automatically import and sync cost pricing for 470+ TLDs directly into WHMCS with a custom profit margin. 
-  - *Recommendation: Always verify 2-5 random extension prices after a sync to ensure accuracy, as pricing data may rarely contain discrepancies.*
+Activation of the Premium version unlocks advanced automation tools, powered by the **JobFew Helper Addon**.
+
+- **Automatic TLD Pricing Sync**: Automatically syncs your TLD costs (Register, Renew, Transfer) with the latest rates from Spaceship. Includes the automatic $0.18 ICANN fee.
+  - *How to Sync*: Go to **System Settings > Domain Pricing** > click **Import TLD Pricing** > select **Spaceship** > click **Import**.
+- **Premium Domain Support & Markup**: Allows your customers to search for and purchase high-value "Premium" domains. Control your margins via the **Premium Domain Markup (%)** setting.
+- **Status Dashboard**: Your module settings page will display a PRO badge and a live status line, confirming your license is active and your TLD sync is operational.
 
 ---
 
@@ -37,6 +41,17 @@ An enhanced, high-performance registrar module for WHMCS that integrates with th
 - **WHMCS v8.x, v9.x** (Tested on the latest versions)
 - **PHP 7.4 or higher** (PHP 8.1+ recommended)
 - **Spaceship.com API Credentials**: Obtain your API Key and Secret from the [Spaceship API Manager](https://www.spaceship.com/application/api-manager/).
+- **JobFew Helper Addon**: (Required only if you are installing the Premium version).
+
+### 🔑 Required API Permissions (Scopes)
+To use this module without encountering `403 Insufficient Permissions` errors, you **must enable the following scopes** when creating your API Key:
+- `domains:billing` (Required for registering and renewing domains)
+- `domains:read` (Required to fetch domain details and sync statuses)
+- `domains:write` (Required to update domain settings, locks, and nameservers)
+- `domains:transfer` (Required to process incoming transfers)
+- `contacts:read` (Required to fetch contact info)
+- `contacts:write` (Required to save contact details during registration)
+- `dnsrecords:read` & `dnsrecords:write` (Optional, required only if you want to use the native WHMCS DNS Management features on Spaceship's nameservers)
 
 ### Upgrading from v2.0 or earlier
 If you are upgrading an existing installation, you **must re-activate the module** to create the necessary database table:
@@ -46,14 +61,17 @@ If you are upgrading an existing installation, you **must re-activate the module
 4. Verify your API credentials are still present and click **Save Changes**.
 
 ### New Installation
-1. **Download**: Download the repository as a ZIP or clone it.
-2. **Upload**: Upload the `modules/` folder into your **WHMCS root directory**.
+1. **Download**: Download the appropriate release file:
+   - Free Version: `whmcs-spaceship-registrar-v2.2.2.zip`
+   - Premium Version: `whmcs-spaceship-registrar-premium-v2.2.2.zip`
+2. **Upload**: Extract and upload the `modules/` folder into your **WHMCS root directory**.
 3. **Activate**:
    - Log in to your WHMCS Admin Area.
    - Navigate to **System Settings > Domain Registrars**.
    - Find **Spaceship** and click **Activate**.
 4. **Configure**:
    - Enter your **API Key** and **API Secret**.
+   - **Test Mode**: Keep unchecked (Spaceship currently has no public sandbox).
    - Click **Save Changes**.
 
 ---

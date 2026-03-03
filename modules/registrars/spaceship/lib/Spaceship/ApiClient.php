@@ -12,6 +12,13 @@ class ApiClient
     private $lastRequest;
     private $lastResponse;
 
+    /**
+     * ApiClient constructor.
+     *
+     * @param string $apiKey
+     * @param string $apiSecret
+     * @param bool $testMode
+     */
     public function __construct($apiKey, $apiSecret, $testMode = false)
     {
         $this->apiKey = $apiKey;
@@ -43,7 +50,7 @@ class ApiClient
             'X-API-Secret: ' . $this->apiSecret,
             'Content-Type: application/json',
             'Accept: application/json',
-            'User-Agent: WHMCS-Spaceship-Module/2.2.1',
+            'User-Agent: WHMCS-Spaceship-Module/2.2.2',
         ];
 
         $requestBody = '';

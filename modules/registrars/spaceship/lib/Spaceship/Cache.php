@@ -19,8 +19,8 @@ class Cache
     public static function init()
     {
         try {
-            if (!Capsule::schema()->hasTable(self::TABLE)) {
-                Capsule::schema()->create(
+            if (!\WHMCS\Database\Capsule::schema()->hasTable(self::TABLE)) {
+                \WHMCS\Database\Capsule::schema()->create(
                     self::TABLE,
                     function ($table) {
                         $table->increments('id');
@@ -51,11 +51,11 @@ class Cache
     {
         try {
             // Lazy Init: Ensure table exists
-            if (!Capsule::schema()->hasTable(self::TABLE)) {
+            if (!\WHMCS\Database\Capsule::schema()->hasTable(self::TABLE)) {
                 self::init();
             }
 
-            $cache = Capsule::table(self::TABLE)
+            $cache = \WHMCS\Database\Capsule::table(self::TABLE)
                 ->where('domain_name', $domain)
                 ->where('cache_key', $key)
                 ->where('expires_at', '>', \time())
@@ -81,7 +81,7 @@ class Cache
         try {
             $expiresAt = \time() + $ttl;
 
-            Capsule::table(self::TABLE)->updateOrInsert(
+            \WHMCS\Database\Capsule::table(self::TABLE)->updateOrInsert(
                 ['domain_name' => $domain, 'cache_key' => $key],
                 ['cache_value' => \json_encode($value), 'expires_at' => $expiresAt]
             );
@@ -99,7 +99,7 @@ class Cache
     public static function clear($domain)
     {
         try {
-            Capsule::table(self::TABLE)->where('domain_name', $domain)->delete();
+            \WHMCS\Database\Capsule::table(self::TABLE)->where('domain_name', $domain)->delete();
         } catch (\Throwable $e) {
             // Fail silently
         }
