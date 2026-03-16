@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3] - 2026-03-16
+
 ### Changed
-- **Product Transfer**: This module has been transferred to **Topeta**. License activation is now processed via [my.topeta.com](https://my.topeta.com).
+- **Product Transfer**: This module has been officially transferred to **Topeta**. License activation is now processed via [my.topeta.com](https://my.topeta.com).
+
+### Fixed
+- **Workflow Obfuscation Pathing**: Fixed a critical bug in `release.yml` that caused the obfuscated output to be silently ignored during packaging.
+- **Free Version Upgrade Link**: Fixed an outdated link pointing to the old decommissioned store (product 402 → 424).
 - **Licensing Resilience**: The module optimally relies on server-side redirects at `my.jobfew.com` (0 code changes required for existing installations).
 - **Support Ecosystem**: Updated support email (`support@topeta.com`) and updated internal store references.
 

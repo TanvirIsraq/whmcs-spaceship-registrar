@@ -47,7 +47,7 @@ function spaceship_getConfigArray()
             'FriendlyName' => ' ',
             'Type' => 'System',
             'Value' => '<div class="alert alert-info" style="margin: 5px 0;">
-                <h4 style="margin: 0 0 10px 0;">Spaceship.com Registrar Module v2.2.2{PRO_BADGE}</h4>
+                <h4 style="margin: 0 0 10px 0;">Spaceship.com Registrar Module v2.2.3{PRO_BADGE}</h4>
                 <p style="margin-bottom: 10px;">Automate domain registration and management via the Spaceship Public API.</p>
                 <div style="margin: 10px 0;">{STATUS_LINE}</div>
                 <hr style="margin: 10px 0;">
@@ -90,7 +90,7 @@ function spaceship_getConfigArray()
         // Fallback for Free Version
         $config['Description']['Value'] = str_replace(
             ['{PRO_BADGE}', '{STATUS_LINE}'],
-            ['', '<strong>Free Version:</strong> Upgrade for TLD Pricing Sync. <a href="https://my.jobfew.com/checkout-edd/?edd_action=add_to_cart&download_id=402" target="_blank" class="alert-link" style="text-decoration: underline;">Upgrade to Premium (PRO)</a>'],
+            ['', '<strong>Free Version:</strong> Upgrade for TLD Pricing Sync. <a href="https://my.topeta.com/checkout/?edd_action=add_to_cart&download_id=424" target="_blank" class="alert-link" style="text-decoration: underline;">Upgrade to Premium (PRO)</a>'],
             $config['Description']['Value']
         );
     }

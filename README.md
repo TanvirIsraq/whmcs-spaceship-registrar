@@ -62,8 +62,8 @@ If you are upgrading an existing installation, you **must re-activate the module
 
 ### New Installation
 1. **Download**: Download the appropriate release file:
-   - Free Version: `whmcs-spaceship-registrar-v2.2.2.zip`
-   - Premium Version: `whmcs-spaceship-registrar-premium-v2.2.2.zip`
+   - Free Version: `whmcs-spaceship-registrar-v2.2.3.zip`
+   - Premium Version: `whmcs-spaceship-registrar-premium-v2.2.3.zip`
 2. **Upload**: Extract and upload the `modules/` folder into your **WHMCS root directory**.
 3. **Activate**:
    - Log in to your WHMCS Admin Area.
