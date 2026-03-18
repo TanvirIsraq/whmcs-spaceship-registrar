@@ -88,7 +88,7 @@ function spaceship_getConfigArray()
         }
     } else {
         // Fallback for Free Version
-        $config['Description']['Value'] = str_replace(
+        $config['Description']['Value'] = \str_replace(
             ['{PRO_BADGE}', '{STATUS_LINE}'],
             ['', '<strong>Free Version:</strong> Upgrade for TLD Pricing Sync. <a href="https://my.topeta.com/checkout/?edd_action=add_to_cart&download_id=424" target="_blank" class="alert-link" style="text-decoration: underline;">Upgrade to Premium (PRO)</a>'],
             $config['Description']['Value']
@@ -242,8 +242,8 @@ function spaceship_CheckAvailability($params)
 
         return $results;
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'CheckAvailability Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'CheckAvailability Error', $params, $e->getMessage());
         }
         return (new \WHMCS\Domains\DomainLookup\ResultsList())->setError($e->getMessage());
     }
@@ -271,6 +271,11 @@ function _spaceship_prepare_contact_data($params, $type)
         ?? $params['phonenumber']
         ?? '';
 
+    $postalRaw = \trim($params["{$prefix}postcode"] ?? $params['postcode'] ?? '');
+    $postalCode = \preg_replace('/[^0-9\\s-]/', '', $postalRaw);
+    $postalCode = \preg_replace('/\\s+/', ' ', $postalCode);
+    $postalCode = \trim($postalCode);
+
     $data = [
         'firstName' => \trim($params["{$prefix}firstname"] ?? $params['firstname'] ?? ''),
         'lastName' => \trim($params["{$prefix}lastname"] ?? $params['lastname'] ?? ''),
@@ -281,7 +286,7 @@ function _spaceship_prepare_contact_data($params, $type)
         'city' => \trim($params["{$prefix}city"] ?? $params['city'] ?? ''),
         'country' => $params["{$prefix}country"] ?? $params['country'] ?? '',
         'stateProvince' => \trim($params["{$prefix}fullstate"] ?? $params['fullstate'] ?? $params['state'] ?? ''),
-        'postalCode' => \trim($params["{$prefix}postcode"] ?? $params['postcode'] ?? ''),
+        'postalCode' => $postalCode,
         'phone' => \trim($phone),
     ];
 
@@ -306,6 +311,9 @@ function _spaceship_save_contact($client, $params, $type)
     global $spaceshipContactCache;
 
     $data = _spaceship_prepare_contact_data($params, $type);
+    if ($data['postalCode'] !== '' && !\preg_match('/^[\\d-][\\d\\s-]+[\\d-]$|^[\\d-]{0,2}$/', $data['postalCode'])) {
+        throw new \Exception('Invalid postal code. Allowed: digits, spaces, hyphen.');
+    }
     $cacheKey = md5(json_encode($data));
 
     if (isset($spaceshipContactCache[$cacheKey])) {
@@ -394,8 +402,8 @@ function spaceship_RegisterDomain($params)
 
         return ['success' => true];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'RegisterDomain Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'RegisterDomain Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -420,8 +428,8 @@ function spaceship_RenewDomain($params)
 
         return ['success' => true];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'RenewDomain Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'RenewDomain Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -463,8 +471,8 @@ function spaceship_TransferDomain($params)
 
         return ['success' => true];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'TransferDomain Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'TransferDomain Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -490,8 +498,8 @@ function spaceship_GetNameservers($params)
 
         return $ns;
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'GetNameservers Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'GetNameservers Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -570,8 +578,8 @@ function spaceship_GetRegistrarLock($params)
 
         return $isLocked ? 'locked' : 'unlocked';
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'GetRegistrarLock Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'GetRegistrarLock Error', $params, $e->getMessage());
         }
         /**
          * Return 'unlocked' on error to allow the user to see the 'Enable Lock' button,
@@ -599,8 +607,8 @@ function spaceship_GetTransferStatus($params)
             'status' => $result['status'],
         ];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'GetTransferStatus Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'GetTransferStatus Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -630,8 +638,8 @@ function spaceship_SaveRegistrarLock($params)
 
         return ['success' => true];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'SaveRegistrarLock Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'SaveRegistrarLock Error', $params, $e->getMessage());
         }
         return ['error' => 'Failed to update lock status: ' . $e->getMessage()];
     }
@@ -708,8 +716,8 @@ function spaceship_GetEPPCode($params)
             'eppcode' => $result['authCode']
         ];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'GetEPPCode Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'GetEPPCode Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -744,8 +752,8 @@ function spaceship_Sync($params)
             'redemption' => ($status === 'redemption'),
         ];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'Sync Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'Sync Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -852,8 +860,8 @@ function spaceship_SaveContactDetails($params)
 
         return ['success' => true];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'SaveContactDetails Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'SaveContactDetails Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -900,8 +908,8 @@ function spaceship_GetDNS($params)
             $message = "DNS records not found. This domain might not be using Spaceship nameservers.";
         }
 
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'GetDNS Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'GetDNS Error', $params, $e->getMessage());
         }
         return ['error' => $message];
     }
@@ -978,17 +986,23 @@ function spaceship_RegisterNameserver($params)
      * WHMCS sends the full nameserver (ns1.example.com).
      * Spaceship API expects only the host prefix (ns1).
      */
-    $host = str_replace('.' . $params['domainname'], '', $params['nameserver']);
+    $host = \str_replace('.' . $params['domainname'], '', $params['nameserver']);
 
     try {
-        $client->request('POST', "/domains/{$params['domainname']}/personal-nameservers", [
+        // Spaceship API uses PUT with a host-specific path and "ips" array.
+        $ips = [];
+        if (!empty($params['ipaddress'])) {
+            $ips[] = $params['ipaddress'];
+        }
+
+        $client->request('PUT', "/domains/{$params['domainname']}/personal-nameservers/{$host}", [
             'host' => $host,
-            'ip' => $params['ipaddress'],
+            'ips' => $ips,
         ], 'RegisterNameserver');
         return ['success' => true];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'RegisterNameserver Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'RegisterNameserver Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -1003,17 +1017,25 @@ function spaceship_RegisterNameserver($params)
 function spaceship_ModifyNameserver($params)
 {
     $client = _spaceship_get_client($params);
-    $host = str_replace('.' . $params['domainname'], '', $params['nameserver']);
+    $host = \str_replace('.' . $params['domainname'], '', $params['nameserver']);
 
     try {
+        // Update the host configuration with the new IP(s).
+        $ips = [];
+        if (!empty($params['newipaddress'])) {
+            $ips[] = $params['newipaddress'];
+        } elseif (!empty($params['currentipaddress'])) {
+            $ips[] = $params['currentipaddress'];
+        }
+
         $client->request('PUT', "/domains/{$params['domainname']}/personal-nameservers/{$host}", [
-            'oldIp' => $params['currentipaddress'],
-            'newIp' => $params['newipaddress'],
+            'host' => $host,
+            'ips' => $ips,
         ], 'ModifyNameserver');
         return ['success' => true];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'ModifyNameserver Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'ModifyNameserver Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -1028,14 +1050,14 @@ function spaceship_ModifyNameserver($params)
 function spaceship_DeleteNameserver($params)
 {
     $client = _spaceship_get_client($params);
-    $host = str_replace('.' . $params['domainname'], '', $params['nameserver']);
+    $host = \str_replace('.' . $params['domainname'], '', $params['nameserver']);
 
     try {
         $client->request('DELETE', "/domains/{$params['domainname']}/personal-nameservers/{$host}", [], 'DeleteNameserver');
         return ['success' => true];
     } catch (\Exception $e) {
-        if (function_exists('logModuleCall')) {
-            logModuleCall('spaceship', 'DeleteNameserver Error', $params, $e->getMessage());
+        if (\function_exists('logModuleCall')) {
+            \logModuleCall('spaceship', 'DeleteNameserver Error', $params, $e->getMessage());
         }
         return ['error' => $e->getMessage()];
     }
@@ -1099,3 +1121,6 @@ function spaceship_GetTldPricing($params)
         return new \WHMCS\Results\ResultsList();
     }
 }
+
+
+
