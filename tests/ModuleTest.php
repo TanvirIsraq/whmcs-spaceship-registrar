@@ -5,7 +5,7 @@ if (!defined("WHMCS")) {
     define("WHMCS", true);
 }
 
-require_once __DIR__ . '/../modules/registrars/spaceship/spaceship.php';
+require_once __DIR__ . '/../spaceship.php';
 
 use Spaceship\ApiClient;
 

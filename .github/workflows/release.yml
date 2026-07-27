@@ -33,27 +33,33 @@ jobs:
           echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
           echo "Detected version tag: $TAG"
 
-      # ── 3. Build distributable ZIP ─────────────────────────────────────
+      # ── 3. Build distributable ZIP with WHMCS nested structure ───────
+      # Source repo is flat (root-level files).
+      # ZIP must have: modules/registrars/spaceship/ for direct extraction to WHMCS root.
       - name: Build ZIP archive
         id: build_zip
         run: |
           TAG="${{ steps.version.outputs.TAG }}"
           ZIP_NAME="whmcs-spaceship-registrar-${TAG}.zip"
 
-          # Create staging directory with WHMCS module structure
-          mkdir -p staging/modules/registrars/spaceship
-          cp -r modules/registrars/spaceship/. staging/modules/registrars/spaceship/
+          # ── Create the proper WHMCS deployment structure ──
+          STAGING="staging/modules/registrars/spaceship"
+          mkdir -p "$STAGING"
+
+          # Copy all root-level plugin files into the nested staging path
+          cp spaceship.php "$STAGING/"
+          cp whmcs.json    "$STAGING/"
+          cp logo.png      "$STAGING/"
+          cp -r lib/       "$STAGING/lib/"
 
           # ── Clean up unnecessary files ──
-          find staging -name ".git*" -exec rm -rf {} +
+          find staging -name ".git*"      -exec rm -rf {} +
           find staging -name "*.DS_Store" -exec rm -rf {} +
-          find staging -name "__tests__" -type d -exec rm -rf {} +
-          find staging -name "*.md" -exec rm -f {} +
-          # Also remove LICENSE file if present
-          find staging -name "LICENSE" -exec rm -f {} +
+          find staging -name "__tests__"  -type d -exec rm -rf {} +
+          find staging -name "*.md"       -exec rm -f {} +
+          find staging -name "LICENSE"    -exec rm -f {} +
 
-
-          # Create ZIP from the staging folder
+          # ── Create ZIP from staging root so paths start with modules/ ──
           cd staging
           zip -r "../$ZIP_NAME" modules/ -x "__MACOSX/*"
           cd ..

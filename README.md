@@ -36,12 +36,13 @@ Activation of the Premium version unlocks advanced automation tools, powered by 
 ---
 
 ## 🛠️ Installation & Setup
+For step-by-step admin instructions, see `USER_GUIDE.md`.
 
 ### Prerequisites
 - **WHMCS v8.x, v9.x** (Tested on the latest versions)
 - **PHP 7.4 or higher** (PHP 8.1+ recommended)
 - **Spaceship.com API Credentials**: Obtain your API Key and Secret from the [Spaceship API Manager](https://www.spaceship.com/application/api-manager/).
-- **JobFew Helper Addon**: (Required only if you are installing the Premium version).
+- **Topeta Helper Addon**: (Required only if you are installing the Premium version).
 
 ### 🔑 Required API Permissions (Scopes)
 To use this module without encountering `403 Insufficient Permissions` errors, you **must enable the following scopes** when creating your API Key:
